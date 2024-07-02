@@ -308,3 +308,156 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         return idx
+
+
+
+
+
+class VectraGPT(GPT):
+    def __init__(self, config):
+        super().__init__()
+        assert config.vocab_size is not None
+        assert config.block_size is not None
+        self.block_size = config.block_size
+
+        ### New configured stuff ###
+        self.external_dim = config.external_dim     # total dimension of all external reps concatenated together
+        ############################
+
+        type_given = config.model_type is not None
+        params_given = all([config.n_layer is not None, config.n_head is not None, config.n_embd is not None])
+        assert type_given ^ params_given # exactly one of these (XOR)
+        if type_given:
+            # translate from model_type to detailed configuration
+            config.merge_from_dict({
+                # names follow the huggingface naming conventions
+                # GPT-1
+                'openai-gpt':   dict(n_layer=12, n_head=12, n_embd=768),  # 117M params
+                # GPT-2 configs
+                'gpt2':         dict(n_layer=12, n_head=12, n_embd=768),  # 124M params
+                'gpt2-medium':  dict(n_layer=24, n_head=16, n_embd=1024), # 350M params
+                'gpt2-large':   dict(n_layer=36, n_head=20, n_embd=1280), # 774M params
+                'gpt2-xl':      dict(n_layer=48, n_head=25, n_embd=1600), # 1558M params
+                # Gophers
+                'gopher-44m':   dict(n_layer=8, n_head=16, n_embd=512),
+                # (there are a number more...)
+                # I made these tiny models up
+                'gpt-mini':     dict(n_layer=6, n_head=6, n_embd=192),
+                'gpt-micro':    dict(n_layer=4, n_head=4, n_embd=128),
+                'gpt-nano':     dict(n_layer=3, n_head=3, n_embd=48),
+            }[config.model_type])
+
+        self.transformer = nn.ModuleDict(dict(
+            wte = nn.Embedding(config.vocab_size, config.n_embd),
+            wpe = nn.Embedding(config.block_size, config.n_embd),
+            drop = nn.Dropout(config.embd_pdrop),
+            h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
+            ln_f = nn.LayerNorm(config.n_embd),
+        ))
+        # For lm_head, use both transformer output sequence and external rep as input
+        self.lm_head = nn.Linear(config.n_embd+self.external_dim, config.vocab_size, bias=False)
+
+        # init all weights, and apply a special scaled init to the residual projections, per GPT-2 paper
+        self.apply(self._init_weights)
+        for pn, p in self.named_parameters():
+            if pn.endswith('c_proj.weight'):
+                torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * config.n_layer))
+
+        # report number of parameters (note we don't count the decoder parameters in lm_head)
+        n_params = sum(p.numel() for p in self.transformer.parameters())
+        print("number of parameters: %.2fM" % (n_params/1e6,))
+
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, nn.LayerNorm):
+            torch.nn.init.zeros_(module.bias)
+            torch.nn.init.ones_(module.weight)
+
+    @classmethod
+    def from_pretrained(cls, model_type):
+        """
+        Initialize a pretrained GPT model by copying over the weights
+        from a huggingface/transformers checkpoint.
+        """
+        assert model_type in {'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl'}
+        from transformers import GPT2LMHeadModel
+
+        # create a from-scratch initialized minGPT model
+        config = cls.get_default_config()
+        config.model_type = model_type
+        config.vocab_size = 50257 # openai's model vocabulary
+        config.block_size = 1024  # openai's model block_size
+        model = GPT(config)
+        sd = model.state_dict()
+
+        # init a huggingface/transformers model
+        model_hf = GPT2LMHeadModel.from_pretrained(model_type)
+        sd_hf = model_hf.state_dict()
+
+        # copy while ensuring all of the parameters are aligned and match in names and shapes
+        keys = [k for k in sd_hf if not k.endswith('attn.masked_bias')] # ignore these
+        transposed = ['attn.c_attn.weight', 'attn.c_proj.weight', 'mlp.c_fc.weight', 'mlp.c_proj.weight']
+        # basically the openai checkpoints use a "Conv1D" module, but we only want to use a vanilla nn.Linear.
+        # this means that we have to transpose these weights when we import them
+        assert len(keys) == len(sd)
+        for k in keys:
+            if any(k.endswith(w) for w in transposed):
+                # special treatment for the Conv1D weights we need to transpose
+                assert sd_hf[k].shape[::-1] == sd[k].shape
+                with torch.no_grad():
+                    sd[k].copy_(sd_hf[k].t())
+            else:
+                # vanilla copy over the other parameters
+                assert sd_hf[k].shape == sd[k].shape
+                with torch.no_grad():
+                    sd[k].copy_(sd_hf[k])
+
+        return model
+
+    def forward(self, idx, external_rep=None, targets=None):
+        """
+        In Trainer and ZeoDataset.__getiitem__, a batch of data contains (x, zeo_rep, syn_rep), y
+
+        They correspond to the arguments in this forward function:
+            idx: "x". The explicit text input as token idx, in the shape of (batch_size, block_size(max_length))
+            external_rep: ("zeo_rep", "syn_rep")
+                zeo_rep: the external zeolite representation vectors, in the shape of (batch_size, zeo_rep_dim=143)
+                syn_rep: the external synthesis gel representation vectors, in the shape of (batch_size, syn_rep_dim=12)
+            targets: "y". The target output sequence
+        """
+        device = idx.device
+        b, t = idx.size()
+        assert t <= self.block_size, f"Cannot forward sequence of length {t}, block size is only {self.block_size}"
+        pos = torch.arange(0, t, dtype=torch.long, device=device).unsqueeze(0) # shape (1, t)
+
+        # forward the GPT model itself
+        tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
+        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (1, t, n_embd)
+        x = self.transformer.drop(tok_emb + pos_emb)
+        # tok_emb + pos_emb is of shape (b, t, n_embd)
+        # x, after dropout for tok_emb + pos_emb, is of the same shape (b, t, n_embd)
+        for block in self.transformer.h:
+            x = block(x)
+        x = self.transformer.ln_f(x)
+        # x is of shape (b, t, n_embd)
+
+        ### Output logits, conditioned on both sequence hidden state output (from transformer) and external representations ###
+        external_rep = tuple(rep.unsqueeze(1).expand(-1, x.size(1), -1) for rep in external_rep)     # expand the reps along dim t
+        x = torch.cat((x, *external_rep), dim=-1)       # concatenate the external reps to transformer output hidden states
+        logits = self.lm_head(x)    # compute logits
+        # logits is of shape (b, t, vocab_size)
+        #######################################################################################################################
+
+        # if we are given some desired targets also calculate the loss
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
+            # input = logits.view(-1, logits.size(-1)), shape is (b*t, vocab_size), logits for each class
+            # targets = targets.view(-1), shape is (b*t, ), labels
+
+        return logits, loss

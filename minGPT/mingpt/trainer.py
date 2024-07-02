@@ -87,10 +87,13 @@ class Trainer:
                 data_iter = iter(train_loader)
                 batch = next(data_iter)
             batch = [t.to(self.device) for t in batch]
-            x, y = batch
+            (x, zeo_rep, syn_rep), y = batch
 
             # forward the model
-            logits, self.loss = model(x, y)
+            logits, self.loss = model(x, 
+                                      external_rep=(zeo_rep, syn_rep), 
+                                      targets=y) 
+            # pass in not only explicit input, but also a tuple of all external latent rep
 
             # backprop and update the parameters
             model.zero_grad(set_to_none=True)

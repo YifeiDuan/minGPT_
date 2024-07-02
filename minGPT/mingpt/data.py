@@ -95,7 +95,7 @@ class ZeoDataset(Dataset):
         ##### Read in the data of the specified split as pandas df #####
         assert split in {'train', 'val', 'test'}
         self.split = split
-        self.data_records - data_records
+        self.data_records = data_records
         self.max_length = info["max_length"]
         self.vocab_size = info["vocab_size"]
     
