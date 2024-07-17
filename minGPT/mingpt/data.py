@@ -4,6 +4,7 @@ from torch.utils.data.dataloader import DataLoader
 
 import pandas as pd
 import numpy as np
+import pickle
 
 import sys
 from bpe import *
@@ -72,6 +73,9 @@ def collate_zeo_datasets():
         "vocab_size": len(vocab),
         "max_length": max_length
     }
+
+    with open("../prec_dataset/info.pkl", 'wb') as file:
+        pickle.dump(info, file)
 
     return train_dataset, val_dataset, test_dataset, info       
 
