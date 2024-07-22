@@ -9,7 +9,7 @@ import pickle
 import sys
 from bpe import *
 
-data_dir = "/home/jupyter/YD/Zeolite_Prec_LM/prec_dataset/"
+data_dir = "/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/prec_dataset/"
 
 
 def collate_zeo_datasets():

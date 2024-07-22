@@ -48,9 +48,23 @@ if __name__ == "__main__":
 
     
     ########## 4. Start training ##########
+    save_dir = "/home/jupyter/YD/ZeoPrecLLM/saved_models"
     def batch_end_callback(trainer):
         if trainer.iter_num % 100 == 0:
+            ### print loss ###
             print(f"iter_dt {trainer.iter_dt * 1000:.2f}ms; iter {trainer.iter_num}: train loss {trainer.loss.item():.5f}")
+            
+            ### save checkpoint ###
+            save_dict = {
+                    'model_state_dict': model.state_dict(),
+                    "model_config": model_config,
+                    "train_config": train_config,
+                    'model_name': f"{model_type}_ckpt{trainer.iter_num}",
+                    "train_loss": trainer.loss.item()
+                }
+
+            torch.save(save_dict, save_dir + f"{model_type}_ckpt{trainer.iter_num}_model.pth")
+
     trainer.set_callback('on_batch_end', batch_end_callback)
 
     trainer.run()
