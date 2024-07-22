@@ -9,7 +9,7 @@ import pickle
 import sys
 from bpe import *
 
-
+data_dir = "/home/jupyter/YD/Zeolite_Prec_LM/prec_dataset/"
 
 
 def collate_zeo_datasets():
@@ -26,7 +26,7 @@ def collate_zeo_datasets():
     max_length = 0  # keep record of the maximum sequence length
     for split in ["train", "val", "test"]:
         ##### Read in the raw data #####
-        df = pd.read_csv(f"../prec_dataset/prec_dataset_{split}.csv")
+        df = pd.read_csv(data_dir + f"prec_dataset_{split}.csv")
         zeo_cols = [x for x in df.columns if 'zeo_' in x]   # zeolite features
         syn_cols = [x for x in df.columns if 'syn_' in x]   # synthesis gel features
 
@@ -60,9 +60,9 @@ def collate_zeo_datasets():
             max_length = max(max_length, len(input_tokens))
     
     ### Save processed datasets ###
-    pd.DataFrame.from_records(processed_data["train"]).to_csv("../prec_dataset/processed_train.csv", index=False)
-    pd.DataFrame.from_records(processed_data["val"]).to_csv("../prec_dataset/processed_val.csv", index=False)
-    pd.DataFrame.from_records(processed_data["test"]).to_csv("../prec_dataset/processed_test.csv", index=False)
+    pd.DataFrame.from_records(processed_data["train"]).to_csv(data_dir + "processed_train.csv", index=False)
+    pd.DataFrame.from_records(processed_data["val"]).to_csv(data_dir + "processed_val.csv", index=False)
+    pd.DataFrame.from_records(processed_data["test"]).to_csv(data_dir + "processed_test.csv", index=False)
 
     ### Collate the datasets ###
     train_dataset = ZeoDataset(processed_data["train"])
@@ -74,7 +74,7 @@ def collate_zeo_datasets():
         "max_length": max_length
     }
 
-    with open("../prec_dataset/info.pkl", 'wb') as file:
+    with open(data_dir + "info.pkl", 'wb') as file:
         pickle.dump(info, file)
 
     return train_dataset, val_dataset, test_dataset, info       
