@@ -8,6 +8,9 @@ from collections import defaultdict
 
 import torch
 from torch.utils.data.dataloader import DataLoader
+
+import sys
+sys.path.append("/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/minGPT")
 from mingpt.utils import CfgNode as CN
 
 class Trainer:

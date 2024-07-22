@@ -4,6 +4,8 @@ from torch.utils.data.dataloader import DataLoader
 
 import argparse, yaml
 import os
+import sys
+sys.path.append("/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/minGPT")
 
 from mingpt.data import *
 from mingpt.model import VectraGPT

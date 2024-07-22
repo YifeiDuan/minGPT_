@@ -7,7 +7,8 @@ import numpy as np
 import pickle
 
 import sys
-from bpe import *
+sys.path.append("/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/minGPT")
+from mingpt.bpe import *
 
 data_dir = "/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/prec_dataset/"
 
@@ -43,7 +44,8 @@ def collate_zeo_datasets():
             tokens = enc.encode(text)    # tokenize the entire text sequence
             input_tokens = tokens[:-1]  # shift
             output_tokens = tokens[1:]  # shift
-            output_tokens[:len(enc.encode(f"{zeo_text} # Precursors: "))] = -1   # mask the read-in input tokens in the output sequence
+            mask_len = len(enc.encode(f"{zeo_text} # Precursors: ")) - 1
+            output_tokens[:mask_len] = [-1]*mask_len   # mask the read-in input tokens in the output sequence
             ####### Store the data point into processed_data #######
             processed_data[split].append(
                 {

@@ -14,6 +14,9 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+import sys
+sys.path.append("/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/minGPT")
+
 from mingpt.utils import CfgNode as CN
 
 # -----------------------------------------------------------------------------
