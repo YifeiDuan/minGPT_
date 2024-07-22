@@ -29,6 +29,7 @@ class Trainer:
         C.betas = (0.9, 0.95)
         C.weight_decay = 0.1 # only applied on matmul weights
         C.grad_norm_clip = 1.0
+        C.external_dim = None
         return C
 
     def __init__(self, config, model, train_dataset):
@@ -90,7 +91,8 @@ class Trainer:
                 data_iter = iter(train_loader)
                 batch = next(data_iter)
             batch = [t.to(self.device) for t in batch]
-            (x, zeo_rep, syn_rep), y = batch
+            x, zeo_rep, syn_rep, y = batch
+            
 
             # forward the model
             logits, self.loss = model(x, 
@@ -113,3 +115,7 @@ class Trainer:
             # termination conditions
             if config.max_iters is not None and self.iter_num >= config.max_iters:
                 break
+    
+"""
+    def eval(self, val_loader):
+        data_iter = iter(train_loader)"""

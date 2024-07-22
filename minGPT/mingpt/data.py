@@ -66,15 +66,16 @@ def collate_zeo_datasets():
     pd.DataFrame.from_records(processed_data["val"]).to_csv(data_dir + "processed_val.csv", index=False)
     pd.DataFrame.from_records(processed_data["test"]).to_csv(data_dir + "processed_test.csv", index=False)
 
-    ### Collate the datasets ###
-    train_dataset = ZeoDataset(processed_data["train"])
-    val_dataset = ZeoDataset(processed_data["val"])
-    test_dataset = ZeoDataset(processed_data["test"])
-
+    
     info = {
         "vocab_size": len(vocab),
         "max_length": max_length
     }
+
+    ### Collate the datasets ###
+    train_dataset = ZeoDataset("train", processed_data["train"], info)
+    val_dataset = ZeoDataset("val", processed_data["val"], info)
+    test_dataset = ZeoDataset("test", processed_data["test"], info)
 
     with open(data_dir + "info.pkl", 'wb') as file:
         pickle.dump(info, file)
@@ -106,7 +107,7 @@ class ZeoDataset(Dataset):
         self.vocab_size = info["vocab_size"]
     
     def __len__(self):
-        return len(self.df)
+        return len(self.data_records)
     
     def get_vocab_size(self):
         return self.vocab_size
@@ -128,12 +129,12 @@ class ZeoDataset(Dataset):
         x = x + [-1]*(self.max_length-len(x))        
         y = y + [-1]*(self.max_length-len(y))
         ##### Convert to batchable torch tensors #####
-        x = torch.tensor([x], dtype=torch.long) # [x] to create a "batch_dimension" of 1
-        y = torch.tensor([y], dtype=torch.long)
+        x = torch.tensor(x, dtype=torch.long)
+        y = torch.tensor(y, dtype=torch.long)
 
         ### Get the external representations and concert to torch tensors ###
-        zeo_rep = torch.tensor([zeo["zeo_rep"]])    # [zeo["zeo_rep"]] to create a "batch_dimension" of 1
-        syn_rep = torch.tensor([zeo["syn_rep"]])
+        zeo_rep = torch.tensor(zeo["zeo_rep"])
+        syn_rep = torch.tensor(zeo["syn_rep"])
         
 
-        return (x, zeo_rep, syn_rep), y
+        return x, zeo_rep, syn_rep, y

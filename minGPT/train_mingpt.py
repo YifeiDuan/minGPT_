@@ -2,6 +2,8 @@ import torch
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 
+import matplotlib.pyplot as plt
+
 import argparse, yaml
 import os
 import sys
@@ -17,9 +19,9 @@ from mingpt.trainer import Trainer
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type', default="gpt-mini")   
-    parser.add_argument('--learning_rate', default=5e-4) # the model we're using is so small that we can go a bit faster
-    parser.add_argument('--max_iters', default=1000)
-    parser.add_argument('--num_workers', default=0)
+    parser.add_argument('--learning_rate', type=float, default=5e-4) # the model we're using is so small that we can go a bit faster
+    parser.add_argument('--max_iters', type=int, default=1000)
+    parser.add_argument('--num_workers',type=int, default=0)
 
     args = parser.parse_args()
 
@@ -38,6 +40,8 @@ if __name__ == "__main__":
     model_config.model_type = model_type
     model_config.vocab_size = train_dataset.get_vocab_size()
     model_config.block_size = train_dataset.get_block_size()
+    model_config.external_dim = train_dataset[0][1].shape[0] + train_dataset[0][2].shape[0]   # lens of zeo_rep and syn_rep
+    print(f"External rep dimension: {model_config.external_dim}")
     model = VectraGPT(model_config)
 
 
@@ -50,8 +54,11 @@ if __name__ == "__main__":
 
     
     ########## 4. Start training ##########
+    train_losses = []
     save_dir = "/home/jupyter/YD/ZeoPrecLLM/saved_models"
     def batch_end_callback(trainer):
+        train_losses.append(trainer.loss.item())
+
         if trainer.iter_num % 100 == 0:
             ### print loss ###
             print(f"iter_dt {trainer.iter_dt * 1000:.2f}ms; iter {trainer.iter_num}: train loss {trainer.loss.item():.5f}")
@@ -70,3 +77,7 @@ if __name__ == "__main__":
     trainer.set_callback('on_batch_end', batch_end_callback)
 
     trainer.run()
+
+    plt.figure()
+    plt.plot(train_losses)
+    plt.show()
