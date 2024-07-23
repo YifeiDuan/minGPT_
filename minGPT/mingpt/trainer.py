@@ -92,7 +92,13 @@ class Trainer:
                 batch = next(data_iter)
             batch = [t.to(self.device) for t in batch]
             x, zeo_rep, syn_rep, y = batch
-            
+
+            print(f"x.shape = {x.shape}")
+            print(f"zeo_rep.shape = {zeo_rep.shape}")
+            print(f"syn_rep.shape = {syn_rep.shape}")
+            print(f"y.shape = {y.shape}")
+            print(x)
+
 
             # forward the model
             logits, self.loss = model(x, 

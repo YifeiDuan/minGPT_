@@ -368,8 +368,8 @@ class VectraGPT(nn.Module):
             }[config.model_type])
 
         self.transformer = nn.ModuleDict(dict(
-            wte = nn.Embedding(config.vocab_size, config.n_embd),
-            wpe = nn.Embedding(config.block_size, config.n_embd),
+            wte = nn.Embedding(config.vocab_size, config.n_embd, padding_idx=0),
+            wpe = nn.Embedding(config.block_size, config.n_embd, padding_idx=0),
             drop = nn.Dropout(config.embd_pdrop),
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = nn.LayerNorm(config.n_embd),

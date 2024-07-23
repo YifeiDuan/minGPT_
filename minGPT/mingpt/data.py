@@ -66,10 +66,13 @@ def collate_zeo_datasets():
     pd.DataFrame.from_records(processed_data["val"]).to_csv(data_dir + "processed_val.csv", index=False)
     pd.DataFrame.from_records(processed_data["test"]).to_csv(data_dir + "processed_test.csv", index=False)
 
-    
+    vocab = set(sorted(list(vocab)))    # sort the token ids within the corpus vocab
+
     info = {
-        "vocab_size": len(vocab),
-        "max_length": max_length
+        "vocab_size": len(vocab) + 1,   # an additional one used for padding/mask token
+        "max_length": max_length,
+        "tokenID_to_vocabID": {**{tok_id:i+1 for i, tok_id in enumerate(vocab)}, **{-1:0}},  # mask token id -1 is mapped to vocab id 0
+        "vocabID_to_tokenID": {**{i+1:tok_id for i, tok_id in enumerate(vocab)}, **{0:-1}}
     }
 
     ### Collate the datasets ###
@@ -105,6 +108,8 @@ class ZeoDataset(Dataset):
         self.data_records = data_records
         self.max_length = info["max_length"]
         self.vocab_size = info["vocab_size"]
+        self.tokenID_to_vocabID = info["tokenID_to_vocabID"]
+        self.vocabID_to_tokenID = info["vocabID_to_tokenID"]
     
     def __len__(self):
         return len(self.data_records)
@@ -128,6 +133,9 @@ class ZeoDataset(Dataset):
         ##### Padding #####
         x = x + [-1]*(self.max_length-len(x))        
         y = y + [-1]*(self.max_length-len(y))
+        ##### Map token ids to vocab ids #####
+        x = [self.tokenID_to_vocabID[t_id] for t_id in x]
+        y = [self.tokenID_to_vocabID[t_id] for t_id in y]
         ##### Convert to batchable torch tensors #####
         x = torch.tensor(x, dtype=torch.long)
         y = torch.tensor(y, dtype=torch.long)

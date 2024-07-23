@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', type=float, default=5e-4) # the model we're using is so small that we can go a bit faster
     parser.add_argument('--max_iters', type=int, default=1000)
     parser.add_argument('--num_workers',type=int, default=0)
+    parser.add_argument('--device',type=str, default="auto")
 
     args = parser.parse_args()
 
@@ -29,6 +30,7 @@ if __name__ == "__main__":
     learning_rate = args.learning_rate
     max_iters = args.max_iters
     num_workers = args.num_workers
+    device = args.device
 
 
     ########## 1. Read and collate data ##########
@@ -39,10 +41,12 @@ if __name__ == "__main__":
     model_config = VectraGPT.get_default_config()
     model_config.model_type = model_type
     model_config.vocab_size = train_dataset.get_vocab_size()
+    print(f"vocab size: {model_config.vocab_size}")
     model_config.block_size = train_dataset.get_block_size()
     model_config.external_dim = train_dataset[0][1].shape[0] + train_dataset[0][2].shape[0]   # lens of zeo_rep and syn_rep
     print(f"External rep dimension: {model_config.external_dim}")
     model = VectraGPT(model_config)
+    model = model.to(torch.float)
 
 
     ########## 3. Config the trainer ##########
@@ -50,6 +54,7 @@ if __name__ == "__main__":
     train_config.learning_rate = learning_rate
     train_config.max_iters = max_iters
     train_config.num_workers = num_workers
+    train_config.device = device
     trainer = Trainer(train_config, model, train_dataset)
 
     

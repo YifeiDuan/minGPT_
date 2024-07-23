@@ -277,6 +277,7 @@ class BPETokenizer:
         # decode indices to text
         text = self.encoder.decode(idx.tolist())
         return text
+    
 
 
 if __name__ == '__main__':
