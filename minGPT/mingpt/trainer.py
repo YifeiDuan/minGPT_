@@ -71,8 +71,7 @@ class Trainer:
         # setup the dataloader
         train_loader = DataLoader(
             self.train_dataset,
-            sampler=torch.utils.data.RandomSampler(self.train_dataset, replacement=True, num_samples=int(1e10)),
-            shuffle=False,
+            shuffle=True,
             pin_memory=True,
             batch_size=config.batch_size,
             num_workers=config.num_workers,
@@ -80,6 +79,7 @@ class Trainer:
 
         model.train()
         self.epoch = 0
+        self.batch_num = 0
         self.epoch_time = time.time()
         epoch_batch_losses = []
         data_iter = iter(train_loader)
@@ -91,6 +91,7 @@ class Trainer:
             except StopIteration:
                 # Previous epoch ends, stats a new one
                 self.epoch += 1
+                self.batch_num = 0
 
                 tnow = time.time()
                 self.epoch_dt = tnow - self.epoch_time
@@ -107,6 +108,7 @@ class Trainer:
                 
                 data_iter = iter(train_loader)
                 batch = next(data_iter)
+            print(f"epoch {self.epoch}: batch {self.batch_num}")
             batch = [t.to(self.device) for t in batch]
             x, zeo_rep, syn_rep, y = batch
 
@@ -124,6 +126,7 @@ class Trainer:
             self.optimizer.step()
 
             epoch_batch_losses.append(self.loss.item())
+            self.batch_num += 1
             self.trigger_callbacks('on_batch_end')
             
     

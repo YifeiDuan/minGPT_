@@ -71,12 +71,11 @@ if __name__ == "__main__":
         train_losses.append(trainer.loss.item())
     
     def epoch_end_callback(trainer):
+        ### print epoch record ###
+        print(f"epoch_dt {trainer.epoch_dt * 1000:.2f}ms; epoch {trainer.epoch}: train loss {trainer.epoch_loss.item():.5f}")
 
-        if trainer.epoch % 100 == 0 or trainer.epoch == max_epochs:
-            ### print loss ###
-            print(f"epoch_dt {trainer.epoch_dt * 1000:.2f}ms; epoch {trainer.epoch}: train loss {trainer.epoch_loss.item():.5f}")
-            
-            ### save checkpoint ###
+        ### save checkpoint ###
+        if trainer.epoch % 10 == 0 or trainer.epoch == max_epochs:            
             save_dict = {
                     'model_state_dict': model.state_dict(),
                     "model_config": model_config,
