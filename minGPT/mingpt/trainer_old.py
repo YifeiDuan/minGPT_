@@ -79,9 +79,8 @@ class Trainer:
         )
 
         model.train()
-        self.epoch = 0
-        self.epoch_time = time.time()
-        epoch_batch_losses = []
+        self.iter_num = 0
+        self.iter_time = time.time()
         data_iter = iter(train_loader)
         while True:
 
@@ -89,22 +88,6 @@ class Trainer:
             try:
                 batch = next(data_iter)
             except StopIteration:
-                # Previous epoch ends, stats a new one
-                self.epoch += 1
-
-                tnow = time.time()
-                self.epoch_dt = tnow - self.epoch_time
-                self.epoch_time = tnow
-
-                self.epoch_loss = torch.mean(torch.tensor(epoch_batch_losses, dtype=float))
-                epoch_batch_losses = []
-
-                self.trigger_callbacks('on_epoch_end')
-
-                # termination conditions
-                if config.max_epochs is not None and self.epoch >= config.max_epochs:
-                    break
-                
                 data_iter = iter(train_loader)
                 batch = next(data_iter)
             batch = [t.to(self.device) for t in batch]
@@ -123,9 +106,15 @@ class Trainer:
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_norm_clip)
             self.optimizer.step()
 
-            epoch_batch_losses.append(self.loss.item())
             self.trigger_callbacks('on_batch_end')
-            
+            self.iter_num += 1
+            tnow = time.time()
+            self.iter_dt = tnow - self.iter_time
+            self.iter_time = tnow
+
+            # termination conditions
+            if config.max_iters is not None and self.iter_num >= config.max_iters:
+                break
     
 """
     def eval(self, val_loader):
