@@ -46,7 +46,7 @@ if __name__ == "__main__":
     model_config.external_dim = train_dataset[0][1].shape[0] + train_dataset[0][2].shape[0]   # lens of zeo_rep and syn_rep
     print(f"External rep dimension: {model_config.external_dim}")
     model = VectraGPT(model_config)
-    model = model.to(torch.float)
+    model = model.to(torch.double)
 
 
     ########## 3. Config the trainer ##########
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     
     ########## 4. Start training ##########
     train_losses = []
-    save_dir = "/home/jupyter/YD/ZeoPrecLLM/saved_models"
+    save_dir = "/home/jupyter/YD/ZeoPrecLLM/saved_models/"
     def batch_end_callback(trainer):
         train_losses.append(trainer.loss.item())
 
