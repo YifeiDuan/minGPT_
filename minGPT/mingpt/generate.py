@@ -122,7 +122,7 @@ if __name__ == "__main__":
     ########## 2. Load trained model ##########
     save_dir = f"/home/jupyter/YD/ZeoPrecLLM/saved_models/{model_type}/"
     for epoch in range(10, 110, 10):
-        print("Generating for model saved at epoch {epoch}")
+        print(f"Generating for model saved at epoch {epoch}")
         trained_stuff = torch.load(save_dir + f"epoch{epoch}_model.pth")
 
         model_config = trained_stuff["model_config"]
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     
         gen_dir = f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/epoch_{epoch}/"
         if not os.path.exists(gen_dir):
-            os.mkdir(gen_dir)
+            os.makedirs(gen_dir)
 
         train_gen_records = batched_generate(model, train_loader, steps=info["max_total_length"], do_sample=True, device=device)
         
