@@ -35,8 +35,11 @@ if __name__ == "__main__":
     device = args.device
 
 
-    ########## 1. Read and collate data ##########
-    train_dataset, val_dataset, test_dataset, info = collate_zeo_datasets()
+    ########## 1. Read the preprocessed data ##########
+    data_dir = f"/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/prec_dataset/"
+
+    with open(data_dir + "train_dataset.pkl", 'rb') as file:
+        train_dataset = pickle.load(file)
 
 
     ########## 2. Initialize the minGPT model ##########

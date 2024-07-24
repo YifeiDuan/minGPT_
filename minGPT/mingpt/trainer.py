@@ -108,7 +108,7 @@ class Trainer:
                 
                 data_iter = iter(train_loader)
                 batch = next(data_iter)
-            print(f"epoch {self.epoch}: batch {self.batch_num}")
+                
             batch = [t.to(self.device) for t in batch]
             x, zeo_rep, syn_rep, y = batch
 
@@ -117,6 +117,7 @@ class Trainer:
             logits, self.loss = model(x, 
                                       external_rep=(zeo_rep, syn_rep), 
                                       targets=y) 
+            # self.loss is the mean CE loss of data points in the batch
             # pass in not only explicit input, but also a tuple of all external latent rep
 
             # backprop and update the parameters
