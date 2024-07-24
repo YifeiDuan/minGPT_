@@ -43,7 +43,7 @@ def collate_zeo_datasets():
             ####### Tokenize and process as input, output tokens #######
             text = f"{zeo_text} # Precursors: {prec_text}"
             tokens = enc.encode(text)    # tokenize the entire text sequence
-            prompt = f"{zeo_text} # Precursors: "
+            prompt = f"{zeo_text} # Precursors:"
             prompt_tokens = enc.encode(prompt)
             input_tokens = tokens[:-1]  # shift
             output_tokens = tokens[1:]  # shift
@@ -204,6 +204,8 @@ class ZeoEvalDataset(Dataset):
         ### Get the external representations and concert to torch tensors ###
         zeo_rep = torch.tensor(zeo["zeo_rep"])
         syn_rep = torch.tensor(zeo["syn_rep"])
-        
 
-        return x, zeo_rep, syn_rep
+        ### Keep record of the example id ###      
+        sample_id = torch.tensor([idx])
+
+        return sample_id, x, zeo_rep, syn_rep
