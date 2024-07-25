@@ -89,8 +89,9 @@ class Encoder:
         - we are special casing a few common apostrophe constructs ('s, 't, 're, ...) and making those into separate tokens
         - we then separate out strings into consecutive chunks of 1) letters, 2) numbers, 3) non-letter-numbers, 4) whitespaces
         """
-        self.pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+        self.pat = re.compile(r"""<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
         self.cache = {}
+        self.special_tokens = ["<|endoftext|>"]
 
     def bpe(self, token):
         """
@@ -103,6 +104,8 @@ class Encoder:
         # memoization, for efficiency
         if token in self.cache:
             return self.cache[token]
+        if token in self.special_tokens:
+            return token
 
         word = tuple(token) # individual characters that make up the token, in a tuple
         pairs = get_pairs(word) # get all bigrams
