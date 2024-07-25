@@ -62,6 +62,8 @@ def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu')
             zeo_text = data_records[dp_id]["zeo"]
             prompt = f"{zeo_text} # Precursors:"
             pred_prec = out.replace(prompt, "").strip()
+            if "<|endoftext|>" in pred_prec:
+                pred_prec = pred_prec.split("<|endoftext|>")[0]
 
             data_records[dp_id]["precs_gen"] = pred_prec
 

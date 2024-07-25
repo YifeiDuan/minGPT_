@@ -41,7 +41,7 @@ def collate_zeo_datasets():
             syn_rep = zeo[syn_cols] # the external synthesis gel representation
             prec_text = zeo["precs"]    # the precursors as text
             ####### Tokenize and process as input, output tokens #######
-            text = f"{zeo_text} # Precursors: {prec_text}"
+            text = f"{zeo_text} # Precursors: {prec_text}" + "<|endoftext|>"
             tokens = enc.encode(text)    # tokenize the entire text sequence
             prompt = f"{zeo_text} # Precursors:"
             prompt_tokens = enc.encode(prompt)
