@@ -77,11 +77,17 @@ if __name__ == "__main__":
     ########## 0. Configurate the session ##########
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type', default="gpt-mini")  
-    parser.add_argument('--device', default="auto")  
+    parser.add_argument('--device', default="auto")   
+    parser.add_argument('--ckpt_start', type=int, default=10)  
+    parser.add_argument('--ckpt_end', type=int, default=100) 
+    parser.add_argument('--ckpt_step', type=int, default=10) 
 
     args = parser.parse_args()
     model_type = args.model_type
     device = args.device
+    ckpt_start = args.ckpt_start
+    ckpt_end = args.ckpt_end
+    ckpt_step = args.ckpt_step
 
     if device == 'auto':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -123,7 +129,7 @@ if __name__ == "__main__":
 
     ########## 2. Load trained model ##########
     save_dir = f"/home/jupyter/YD/ZeoPrecLLM/saved_models/{model_type}/"
-    for epoch in range(10, 110, 10):
+    for epoch in range(ckpt_start, ckpt_end+ckpt_step, ckpt_step):
         print(f"Generating for model saved at epoch {epoch}")
         trained_stuff = torch.load(save_dir + f"epoch{epoch}_model.pth")
 

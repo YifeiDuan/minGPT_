@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', type=float, default=5e-4) # the model we're using is so small that we can go a bit faster
     # parser.add_argument('--max_iters', type=int, default=1000)
     parser.add_argument('--max_epochs', type=int, default=100)
+    parser.add_argument('--save_every', type=int, default=10)
     parser.add_argument('--num_workers',type=int, default=0)
     parser.add_argument('--device',type=str, default="auto")
 
@@ -31,6 +32,7 @@ if __name__ == "__main__":
     learning_rate = args.learning_rate
     # max_iters = args.max_iters
     max_epochs = args.max_epochs
+    save_every = args.save_every
     num_workers = args.num_workers
     device = args.device
 
@@ -78,7 +80,7 @@ if __name__ == "__main__":
         print(f"epoch_dt {trainer.epoch_dt * 1000:.2f}ms; epoch {trainer.epoch}: train loss {trainer.epoch_loss.item():.5f}")
 
         ### save checkpoint ###
-        if trainer.epoch % 10 == 0 or trainer.epoch == max_epochs:            
+        if trainer.epoch % save_every == 0 or trainer.epoch == max_epochs:            
             save_dict = {
                     'model_state_dict': model.state_dict(),
                     "model_config": model_config,
