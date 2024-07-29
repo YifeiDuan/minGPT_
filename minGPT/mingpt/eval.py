@@ -27,8 +27,34 @@ if __name__ == '__main__':
         print(f"Evaluating checkpoint at epoch {epoch}")
         gen_dir = f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/epoch_{epoch}/"
 
-        for split in ["train", "val", "test"]:
-            
+        df["precision"] = None
+        df["recall"] = None
 
-        pd.read_csv(gen_dir + f"train_df.csv")
+        for split in ["train", "val", "test"]:
+            df = pd.read_csv(gen_dir + f"{split}_df.csv")
+            print(f"{split[0].upper()+split[1:]}: ")
+
+            for idx in range(len(df)):
+                precs_true = list(df["precs"])[idx].split(",")
+                precs_true = [mat.strip() for mat in precs_true]
+                precs_pred = list(df["precs_gen"])[idx].split(",")
+                precs_pred = [mat.strip() for mat in precs_pred]
+                
+                count_shared = len(set(precs_true).intersection(precs_pred))
+                df["precision"][idx] = count_shared/len(precs_true)
+                df["recall"][idx]    = count_shared/len(precs_pred)
+            
+            df.to_csv(gen_dir + f"{split}_df.csv", index=False)
+            
+            # rouge
+            rouge_results = rouge.compute(predictions=list(df["precs_gen"]), 
+                                        references=list(df["precs"]))
+            
+            print(rouge_results)
+
+            # accuracy
+            accuracy = {"precision": df["precision"].mean(),
+                        "recall": df["recall"].mean()}
+            print(accuracy)
+            print("\n")
 
