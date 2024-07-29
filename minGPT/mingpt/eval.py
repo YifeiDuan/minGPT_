@@ -27,12 +27,12 @@ if __name__ == '__main__':
         print(f"Evaluating checkpoint at epoch {epoch}")
         gen_dir = f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/epoch_{epoch}/"
 
-        df["precision"] = None
-        df["recall"] = None
-
         for split in ["train", "val", "test"]:
             df = pd.read_csv(gen_dir + f"{split}_df.csv")
             print(f"{split[0].upper()+split[1:]}: ")
+
+            df["precision"] = None
+            df["recall"] = None
 
             for idx in range(len(df)):
                 precs_true = list(df["precs"])[idx].split(",")
