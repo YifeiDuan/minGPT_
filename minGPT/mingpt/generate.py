@@ -8,6 +8,8 @@ from mingpt.bpe import BPETokenizer
 import pickle
 import copy
 import argparse, os
+import pandas as pd
+import numpy as np
 
 import sys
 sys.path.append("/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/minGPT")
@@ -147,6 +149,20 @@ if __name__ == "__main__":
             os.makedirs(gen_dir)
 
         train_gen_records = batched_generate(model, train_loader, steps=info["max_total_length"], do_sample=True, device=device)
-        
         with open(gen_dir + "train_set_records.pkl", 'wb') as file:
             pickle.dump(train_gen_records, file)
+        df = pd.DataFrame.from_records(train_gen_records)
+        df.to_csv(gen_dir + "train_df.csv", index=False)
+        
+        val_gen_records = batched_generate(model, val_loader, steps=info["max_total_length"], do_sample=True, device=device)
+        with open(gen_dir + "val_set_records.pkl", 'wb') as file:
+            pickle.dump(val_gen_records, file)
+        df = pd.DataFrame.from_records(val_gen_records)
+        df.to_csv(gen_dir + "val_df.csv", index=False)
+
+        
+        test_gen_records = batched_generate(model, test_loader, steps=info["max_total_length"], do_sample=True, device=device)
+        with open(gen_dir + "test_set_records.pkl", 'wb') as file:
+            pickle.dump(test_gen_records, file)
+        df = pd.DataFrame.from_records(test_gen_records)
+        df.to_csv(gen_dir + "test_df.csv", index=False)

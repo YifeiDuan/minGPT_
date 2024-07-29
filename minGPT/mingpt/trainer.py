@@ -130,7 +130,3 @@ class Trainer:
             self.batch_num += 1
             self.trigger_callbacks('on_batch_end')
             
-    
-"""
-    def eval(self, val_loader):
-        data_iter = iter(train_loader)"""
