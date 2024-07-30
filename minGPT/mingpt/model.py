@@ -468,8 +468,9 @@ class VectraGPT(nn.Module):
         # x is of shape (b, t, n_embd)
 
         ### Output logits, conditioned on both sequence hidden state output (from transformer) and external representations ###
-        external_rep = tuple(rep.unsqueeze(1).expand(-1, x.size(1), -1) for rep in external_rep)     # expand the reps along dim t
-        x = torch.cat((x, *external_rep), dim=-1)       # concatenate the external reps to transformer output hidden states
+        if external_rep:
+            external_rep = tuple(rep.unsqueeze(1).expand(-1, x.size(1), -1) for rep in external_rep)     # expand the reps along dim t
+            x = torch.cat((x, *external_rep), dim=-1)       # concatenate the external reps to transformer output hidden states
         logits = self.lm_head(x)    # compute logits
         # logits is of shape (b, t, vocab_size)
         #######################################################################################################################

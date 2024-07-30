@@ -32,12 +32,14 @@ class Trainer:
         C.external_dim = None
         return C
 
-    def __init__(self, config, model, train_dataset):
+    def __init__(self, config, model, train_dataset, external_rep= True):
         self.config = config
         self.model = model
         self.optimizer = None
         self.train_dataset = train_dataset
         self.callbacks = defaultdict(list)
+
+        self.external_rep = external_rep
 
         # determine the device we'll train on
         if config.device == 'auto':
@@ -114,9 +116,14 @@ class Trainer:
 
 
             # forward the model
-            logits, self.loss = model(x, 
-                                      external_rep=(zeo_rep, syn_rep), 
-                                      targets=y) 
+            if self.external_rep:
+                logits, self.loss = model(x, 
+                                        external_rep=(zeo_rep, syn_rep), 
+                                        targets=y) 
+            else:
+                logits, self.loss = model(x, 
+                                        external_rep=None, 
+                                        targets=y) 
             # self.loss is the mean CE loss of data points in the batch
             # pass in not only explicit input, but also a tuple of all external latent rep
 
