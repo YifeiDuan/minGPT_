@@ -36,7 +36,7 @@ def generate(model, prompt, external_rep=None, num_samples=10, steps=20, do_samp
 
 
 
-def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu'):
+def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu', external_rep_mode=1):
     """
     If use_mingpt == False, then model_type must not be None (we need to load a specified pretrained tokenizer)
 
@@ -50,7 +50,10 @@ def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu')
         ids, x, zeo_rep, syn_rep = batch
     
         # forward the model `steps` times to get samples, in a batch
-        y = model.generate(x, external_rep=(zeo_rep, syn_rep), max_new_tokens=steps, do_sample=do_sample, top_k=40)
+        if external_rep_mode == 1:
+            y = model.generate(x, external_rep=(zeo_rep, syn_rep), max_new_tokens=steps, do_sample=do_sample, top_k=40)
+        elif external_rep_mode == 0:
+            y = model.generate(x, external_rep=None, max_new_tokens=steps, do_sample=do_sample, top_k=40)
         
         for i in range(x.shape[0]):
             vocabID_seq = y[i].cpu().squeeze().numpy()
