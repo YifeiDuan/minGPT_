@@ -25,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_every', type=int, default=10)
     parser.add_argument('--num_workers',type=int, default=0)
     parser.add_argument('--device',type=str, default="auto")
+    parser.add_argument('--external_rep_mode',type=int, default=1)
 
     args = parser.parse_args()
 
@@ -35,6 +36,7 @@ if __name__ == "__main__":
     save_every = args.save_every
     num_workers = args.num_workers
     device = args.device
+    external_rep_mode = args.external_rep_mode
 
 
     ########## 1. Read the preprocessed data ##########
@@ -50,7 +52,10 @@ if __name__ == "__main__":
     model_config.vocab_size = train_dataset.get_vocab_size()
     print(f"vocab size: {model_config.vocab_size}")
     model_config.block_size = train_dataset.get_block_size()
-    model_config.external_dim = train_dataset[0][1].shape[0] + train_dataset[0][2].shape[0]   # lens of zeo_rep and syn_rep
+    if external_rep_mode == 1:
+        model_config.external_dim = train_dataset[0][1].shape[0] + train_dataset[0][2].shape[0]   # lens of zeo_rep and syn_rep
+    elif external_rep_mode == 0:
+        model_config.external_dim = 0
     print(f"External rep dimension: {model_config.external_dim}")
     model = VectraGPT(model_config)
     model = model.to(torch.double)
@@ -63,12 +68,12 @@ if __name__ == "__main__":
     train_config.max_epochs = max_epochs
     train_config.num_workers = num_workers
     train_config.device = device
-    trainer = Trainer(train_config, model, train_dataset)
+    trainer = Trainer(train_config, model, train_dataset, external_rep_mode=external_rep_mode)
 
     
     ########## 4. Start training ##########
     train_losses = []
-    save_dir = f"/home/jupyter/YD/ZeoPrecLLM/saved_models/{model_type}/"
+    save_dir = f"/home/jupyter/YD/ZeoPrecLLM/saved_models/{model_type}_mode{external_rep_mode}/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     

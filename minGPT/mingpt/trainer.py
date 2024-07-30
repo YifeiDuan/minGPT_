@@ -32,14 +32,14 @@ class Trainer:
         C.external_dim = None
         return C
 
-    def __init__(self, config, model, train_dataset, external_rep= True):
+    def __init__(self, config, model, train_dataset, external_rep_mode=1):
         self.config = config
         self.model = model
         self.optimizer = None
         self.train_dataset = train_dataset
         self.callbacks = defaultdict(list)
 
-        self.external_rep = external_rep
+        self.external_rep_mode = external_rep_mode
 
         # determine the device we'll train on
         if config.device == 'auto':
@@ -116,11 +116,11 @@ class Trainer:
 
 
             # forward the model
-            if self.external_rep:
+            if self.external_rep_mode == 1:
                 logits, self.loss = model(x, 
                                         external_rep=(zeo_rep, syn_rep), 
                                         targets=y) 
-            else:
+            elif self.external_rep_mode == 0:
                 logits, self.loss = model(x, 
                                         external_rep=None, 
                                         targets=y) 

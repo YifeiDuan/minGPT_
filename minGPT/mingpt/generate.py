@@ -83,6 +83,7 @@ if __name__ == "__main__":
     parser.add_argument('--ckpt_start', type=int, default=10)  
     parser.add_argument('--ckpt_end', type=int, default=100) 
     parser.add_argument('--ckpt_step', type=int, default=10) 
+    parser.add_argument('--external_rep_mode',type=int, default=1)
 
     args = parser.parse_args()
     model_type = args.model_type
@@ -90,6 +91,7 @@ if __name__ == "__main__":
     ckpt_start = args.ckpt_start
     ckpt_end = args.ckpt_end
     ckpt_step = args.ckpt_step
+    external_rep_mode = args.external_rep_mode
 
     if device == 'auto':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -130,7 +132,7 @@ if __name__ == "__main__":
     )
 
     ########## 2. Load trained model ##########
-    save_dir = f"/home/jupyter/YD/ZeoPrecLLM/saved_models/{model_type}/"
+    save_dir = f"/home/jupyter/YD/ZeoPrecLLM/saved_models/{model_type}_mode{external_rep_mode}/"
     for epoch in range(ckpt_start, ckpt_end+ckpt_step, ckpt_step):
         print(f"Generating for model saved at epoch {epoch}")
         trained_stuff = torch.load(save_dir + f"epoch{epoch}_model.pth")
@@ -144,7 +146,7 @@ if __name__ == "__main__":
         
     ########## 3. Generate precursors with batched prompts and external reps ##########
     
-        gen_dir = f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/epoch_{epoch}/"
+        gen_dir = f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/epoch_{epoch}/"
         if not os.path.exists(gen_dir):
             os.makedirs(gen_dir)
 
