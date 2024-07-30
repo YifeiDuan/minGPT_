@@ -85,7 +85,8 @@ if __name__ == '__main__':
         plt.plot(df["epoch"], df["precision"], label="precision")
         plt.plot(df["epoch"], df["recall"], label="recall")
         plt.plot(df["epoch"], df["F1"], label="F1")
-        plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/eval_metrics_accuracy.jpg")
+        plt.legend()
+        plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/eval_metrics_accuracy_{split}.jpg")
         plt.show()
 
         plt.figure()
@@ -93,7 +94,8 @@ if __name__ == '__main__':
         plt.plot(df["epoch"], df["rouge2"], label="rouge2")
         plt.plot(df["epoch"], df["rougeL"], label="rougeL")
         plt.plot(df["epoch"], df["rougeLsum"], label="rougeLsum")
-        plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/eval_metrics_rouge.jpg")
+        plt.legend()
+        plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}/eval_metrics_rouge_{split}.jpg")
         plt.show()
 
 
