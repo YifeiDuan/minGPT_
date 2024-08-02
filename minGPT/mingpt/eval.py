@@ -80,7 +80,7 @@ if __name__ == '__main__':
     df_metrics = pd.DataFrame.from_records(metrics_records)
     df_metrics.to_csv(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/eval_metrics_summary.csv", index=False)
 
-    ########## 4. Plots ##########
+    ########## 4. Plots: Each split ##########
     for split in ["train", "val", "test"]:
         df = df_metrics[(df_metrics["split"]==split)]
         plt.figure()
@@ -99,5 +99,3 @@ if __name__ == '__main__':
         plt.legend()
         plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/eval_metrics_rouge_{split}.jpg")
         plt.show()
-
-

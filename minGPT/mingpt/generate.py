@@ -153,20 +153,20 @@ if __name__ == "__main__":
         if not os.path.exists(gen_dir):
             os.makedirs(gen_dir)
 
-        train_gen_records = batched_generate(model, train_loader, steps=info["max_total_length"], do_sample=True, device=device)
+        train_gen_records = batched_generate(model, train_loader, steps=info["max_total_length"], do_sample=True, device=device, external_rep_mode=external_rep_mode)
         with open(gen_dir + "train_set_records.pkl", 'wb') as file:
             pickle.dump(train_gen_records, file)
         df = pd.DataFrame.from_records(train_gen_records)
         df.to_csv(gen_dir + "train_df.csv", index=False)
         
-        val_gen_records = batched_generate(model, val_loader, steps=info["max_total_length"], do_sample=True, device=device)
+        val_gen_records = batched_generate(model, val_loader, steps=info["max_total_length"], do_sample=True, device=device, external_rep_mode=external_rep_mode)
         with open(gen_dir + "val_set_records.pkl", 'wb') as file:
             pickle.dump(val_gen_records, file)
         df = pd.DataFrame.from_records(val_gen_records)
         df.to_csv(gen_dir + "val_df.csv", index=False)
 
         
-        test_gen_records = batched_generate(model, test_loader, steps=info["max_total_length"], do_sample=True, device=device)
+        test_gen_records = batched_generate(model, test_loader, steps=info["max_total_length"], do_sample=True, device=device, external_rep_mode=external_rep_mode)
         with open(gen_dir + "test_set_records.pkl", 'wb') as file:
             pickle.dump(test_gen_records, file)
         df = pd.DataFrame.from_records(test_gen_records)
