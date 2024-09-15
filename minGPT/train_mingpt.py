@@ -52,9 +52,10 @@ if __name__ == "__main__":
     model_config.vocab_size = train_dataset.get_vocab_size()
     print(f"vocab size: {model_config.vocab_size}")
     model_config.block_size = train_dataset.get_block_size()
-    if external_rep_mode == 1:
+    model_config.external_rep_mode = external_rep_mode
+    if external_rep_mode != 0:
         model_config.external_dim = train_dataset[0][1].shape[0] + train_dataset[0][2].shape[0]   # lens of zeo_rep and syn_rep
-    elif external_rep_mode == 0:
+    else: # mode = 0 (no external rep as conditions)
         model_config.external_dim = 0
     print(f"External rep dimension: {model_config.external_dim}")
     model = VectraGPT(model_config)

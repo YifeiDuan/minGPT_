@@ -116,11 +116,11 @@ class Trainer:
 
 
             # forward the model
-            if self.external_rep_mode == 1:
+            if self.external_rep_mode != 0:
                 logits, self.loss = model(x, 
                                         external_rep=(zeo_rep, syn_rep), 
                                         targets=y) 
-            elif self.external_rep_mode == 0:
+            else:    # mode = 0 (no external rep)
                 logits, self.loss = model(x, 
                                         external_rep=None, 
                                         targets=y) 

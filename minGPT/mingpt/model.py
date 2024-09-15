@@ -342,6 +342,13 @@ class VectraGPT(nn.Module):
         self.block_size = config.block_size
 
         ### New configured stuff ###
+        self.external_rep_mode = config.external_rep_mode   
+        """
+        external_rep_mode:
+            0: no external rep
+            1: append to text encoding right before feeding into output head
+            2: prepend to text embedding right after word embedding layer
+        """
         self.external_dim = config.external_dim     # total dimension of all external reps concatenated together
         ############################
 
@@ -376,7 +383,11 @@ class VectraGPT(nn.Module):
             ln_f = nn.LayerNorm(config.n_embd),
         ))
         # For lm_head, use both transformer output sequence and external rep as input
-        self.lm_head = nn.Linear(config.n_embd+self.external_dim, config.vocab_size, bias=False)
+        if self.external_rep_mode == 1:
+            self.lm_head = nn.Linear(config.n_embd+self.external_dim, config.vocab_size, bias=False)
+        else:
+            self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+
 
         # init all weights, and apply a special scaled init to the residual projections, per GPT-2 paper
         self.apply(self._init_weights)
