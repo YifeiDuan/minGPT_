@@ -382,6 +382,11 @@ class VectraGPT(nn.Module):
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = nn.LayerNorm(config.n_embd),
         ))
+        # If prepending is used (turn external rep into token embedding, i.e. artificial new tokens / graph tokens),
+        # then an auxiliary dimension mapping block is required
+        if self.external_rep_mode == 2:
+            self.vectra_embed = nn.Linear(self.external_dim, config.n_embed, bias=True)
+
         # For lm_head, use both transformer output sequence and external rep as input
         if self.external_rep_mode == 1:
             self.lm_head = nn.Linear(config.n_embd+self.external_dim, config.vocab_size, bias=False)
@@ -462,6 +467,9 @@ class VectraGPT(nn.Module):
                 syn_rep: the external synthesis gel representation vectors, in the shape of (batch_size, syn_rep_dim=12)
             targets: "y". The target output sequence
         """
+        if self.external_rep_mode != 0:
+            assert external_rep, "external_rep_mode is not 0, but no external_rep provided!"
+
         device = idx.device
         b, t = idx.size()
         assert t <= self.block_size, f"Cannot forward sequence of length {t}, block size is only {self.block_size}"
@@ -473,13 +481,30 @@ class VectraGPT(nn.Module):
         x = self.transformer.drop(tok_emb + pos_emb)
         # tok_emb + pos_emb is of shape (b, t, n_embd)
         # x, after dropout for tok_emb + pos_emb, is of the same shape (b, t, n_embd)
+
+        # Prepending of external embeddings if external_rep_mode = 2
+        if self.external_rep_mode == 2:
+            external_rep = tuple(rep.unsqueeze(1) for rep in external_rep)
+            # each rep in external_rep is now of shape (b, 1, length)
+            external_embed = torch.cat(external_rep, dim=-1)       # concatenate all of the external reps
+            # external_embed is now of shape (b, 1, external_dim)
+            external_embed = self.vectra_embed(external_embed)     # embed the external reps into the dimension of word embedding
+            # external_embed is now of shape (b, 1, n_embd)
+            
+            x = torch.cat((x, external_embed), dim=1)   # stack external_embed with text embeddings along the t (seq len) dimension
+            # x, after prepending, is of the shape (b, t+1, n_embd)
+
+        # Go through transformer blocks (performing self-attn)
         for block in self.transformer.h:
             x = block(x)
         x = self.transformer.ln_f(x)
-        # x is of shape (b, t, n_embd)
+        # x is of shape (b, t, n_embd) or (b, t+1, embd)
+        if x.shape[1] > t:
+        # if self.external_rep_mode == 2:
+            x = x[: ,-t:, :]    # slice only the original pure text sequence of length t for next token generation
 
         ### Output logits, conditioned on both sequence hidden state output (from transformer) and external representations ###
-        if external_rep:
+        if self.external_rep_mode == 1:
             external_rep = tuple(rep.unsqueeze(1).expand(-1, x.size(1), -1) for rep in external_rep)     # expand the reps along dim t
             x = torch.cat((x, *external_rep), dim=-1)       # concatenate the external reps to transformer output hidden states
         logits = self.lm_head(x)    # compute logits
