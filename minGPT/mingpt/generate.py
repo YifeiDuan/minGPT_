@@ -50,7 +50,8 @@ def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu',
         ids, x, zeo_rep, syn_rep = batch
     
         # forward the model `steps` times to get samples, in a batch
-        if external_rep_mode == 1:
+        if external_rep_mode != 0:
+            # model.external_rep_mode has been specified when loading saved model with saved model_config
             y = model.generate(x, external_rep=(zeo_rep, syn_rep), max_new_tokens=steps, do_sample=do_sample, top_k=40)
         elif external_rep_mode == 0:
             y = model.generate(x, external_rep=None, max_new_tokens=steps, do_sample=do_sample, top_k=40)
