@@ -385,7 +385,7 @@ class VectraGPT(nn.Module):
         # If prepending is used (turn external rep into token embedding, i.e. artificial new tokens / graph tokens),
         # then an auxiliary dimension mapping block is required
         if self.external_rep_mode == 2:
-            self.vectra_embed = nn.Linear(self.external_dim, config.n_embed, bias=True)
+            self.vectra_embed = nn.Linear(self.external_dim, config.n_embd, bias=True)
 
         # For lm_head, use both transformer output sequence and external rep as input
         if self.external_rep_mode == 1:
