@@ -52,7 +52,10 @@ if __name__ == "__main__":
     model_config.vocab_size = train_dataset.get_vocab_size()
     print(f"vocab size: {model_config.vocab_size}")
     model_config.block_size = train_dataset.get_block_size()
+    model_config.max_text_len = train_dataset.get_block_size()
     model_config.external_rep_mode = external_rep_mode
+    if external_rep_mode == 2:
+        model_config.block_size += 1    # add the "structure token" into block size
     if external_rep_mode != 0:
         model_config.external_dim = train_dataset[0][1].shape[0] + train_dataset[0][2].shape[0]   # lens of zeo_rep and syn_rep
     else: # mode = 0 (no external rep as conditions)

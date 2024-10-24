@@ -329,6 +329,7 @@ class VectraGPT(nn.Module):
         # these options must be filled in externally
         C.vocab_size = None
         C.block_size = None
+        C.max_text_len = None
         # dropout hyperparameters
         C.embd_pdrop = 0.1
         C.resid_pdrop = 0.1
@@ -340,6 +341,7 @@ class VectraGPT(nn.Module):
         assert config.vocab_size is not None
         assert config.block_size is not None
         self.block_size = config.block_size
+        self.max_text_len = config.max_text_len
 
         ### New configured stuff ###
         self.external_rep_mode = config.external_rep_mode   
@@ -377,7 +379,7 @@ class VectraGPT(nn.Module):
 
         self.transformer = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.n_embd, padding_idx=0),
-            wpe = nn.Embedding(config.block_size, config.n_embd, padding_idx=0),
+            wpe = nn.Embedding(config.max_text_len, config.n_embd, padding_idx=0),
             drop = nn.Dropout(config.embd_pdrop),
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = nn.LayerNorm(config.n_embd),
@@ -472,7 +474,7 @@ class VectraGPT(nn.Module):
 
         device = idx.device
         b, t = idx.size()
-        assert t <= self.block_size, f"Cannot forward sequence of length {t}, block size is only {self.block_size}"
+        assert t <= self.max_text_len, f"Cannot forward sequence of length {t}, max_text_len is only {self.max_text_len}"
         pos = torch.arange(0, t, dtype=torch.long, device=device).unsqueeze(0) # shape (1, t)
 
         # forward the GPT model itself
