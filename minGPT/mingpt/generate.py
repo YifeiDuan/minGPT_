@@ -143,6 +143,8 @@ if __name__ == "__main__":
 
         model_config = trained_stuff["model_config"]
         model_config.model_type = None
+        if not model_config.get("max_text_len"):
+            model_config.max_text_len = model_config.block_size
         model = VectraGPT(model_config)
         model.load_state_dict(trained_stuff["model_state_dict"])
         model = model.to(torch.double)

@@ -572,7 +572,7 @@ class VectraGPT(nn.Module):
 
 
     @torch.no_grad()
-    def generate(self, idx, external_rep=None, max_new_tokens=40, temperature=1.0, do_sample=False, top_k=None):
+    def generate(self, idx, external_rep=None, max_new_tokens=40, temperature=1.0, do_sample=False, top_k=None, beam_search=True, num_beam=None):
         """
         Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
@@ -580,29 +580,84 @@ class VectraGPT(nn.Module):
         -------------------
         idx: torch.tensor of shape (b,t). The vocab id sequences (length t) for each example in the batch (a total of b exmaples)
         external_rep: (zeo_rep, syn_rep)
+
+        max_new_tokens: Maximum number of tokens to generate
+        temperature: Sampling temperature
+        do_sample: Whether to sample or not (used in greedy search)
+        top_k: If set, limits the sampling to top_k tokens
+        beam_search: Whether to use beam search or greedy search
+        num_beam: Number of beams to use in beam search
         """
-        for _ in range(max_new_tokens):
-            # if the sequence context is growing too long we must crop it at block_size
-            idx_cond = idx if idx.size(1) <= self.block_size else idx[:, -self.block_size:]
-            # forward the model to get the logits for the index in the sequence
-            if external_rep:
-                logits, _ = self(idx_cond, external_rep=external_rep)
-            else:
-                logits, _ = self(idx_cond, external_rep=None)
-            # pluck the logits at the final step and scale by desired temperature
-            logits = logits[:, -1, :] / temperature
-            # optionally crop the logits to only the top k options
-            if top_k is not None:
-                v, _ = torch.topk(logits, top_k)
-                logits[logits < v[:, [-1]]] = -float('Inf')
-            # apply softmax to convert logits to (normalized) probabilities
-            probs = F.softmax(logits, dim=-1)
-            # either sample from the distribution or take the most likely element
-            if do_sample:
-                idx_next = torch.multinomial(probs, num_samples=1)
-            else:
-                _, idx_next = torch.topk(probs, k=1, dim=-1)
-            # append sampled index to the running sequence and continue
-            idx = torch.cat((idx, idx_next), dim=1)
+        if not beam_search:     # greedy search
+            for _ in range(max_new_tokens):
+                # if the sequence context is growing too long we must crop it at max_text_len
+                idx_cond = idx if idx.size(1) <= self.max_text_len else idx[:, -self.max_text_len:]
+                # forward the model to get the logits for the index in the sequence
+                if external_rep:
+                    logits, _ = self(idx_cond, external_rep=external_rep)
+                else:
+                    logits, _ = self(idx_cond, external_rep=None)
+                # pluck the logits at the final step and scale by desired temperature
+                logits = logits[:, -1, :] / temperature
+                # optionally crop the logits to only the top k options
+                if top_k is not None:
+                    v, _ = torch.topk(logits, top_k)
+                    logits[logits < v[:, [-1]]] = -float('Inf')
+                # apply softmax to convert logits to (normalized) probabilities
+                probs = F.softmax(logits, dim=-1)
+                # either sample from the distribution or take the most likely element
+                if do_sample:
+                    idx_next = torch.multinomial(probs, num_samples=1)
+                else:
+                    _, idx_next = torch.topk(probs, k=1, dim=-1)
+                # append sampled index to the running sequence and continue
+                idx = torch.cat((idx, idx_next), dim=1)
+        else:   # beam search
+            # if num_beams not specified in args, use 5 beams
+            if not num_beam:
+                num_beam = 5
+
+            # Initialize the beams: list of tuples (sequence, score)
+            beams = [(idx, 0.0)]  # sequence and log probability score
+            
+            for _ in range(max_new_tokens):
+                all_candidates = []
+                
+                for seq, score in beams:    # There are num_beam beams except for the first iteration (which has only 1)
+                    # Crop sequence if it's too long
+                    idx_cond = seq if seq.size(1) <= self.max_text_len else seq[:, -self.max_text_len:]
+                    # Forward pass to get logits for the next token
+                    if external_rep:
+                        logits, _ = self(idx_cond, external_rep=external_rep)
+                    else:
+                        logits, _ = self(idx_cond, external_rep=None)
+                    
+                    # Scale logits by temperature
+                    logits = logits[:, -1, :] / temperature     # resulting logits.shape = (b, vocab_size)
+                    # Optionally, restrict to top_k tokens
+                    if top_k is not None:
+                        v, _ = torch.topk(logits, top_k)
+                        logits[logits < v[:, [-1]]] = -float('Inf')
+                    
+                    # Convert logits to probabilities
+                    probs = F.softmax(logits, dim=-1)
+                    
+                    # Get top num_beam tokens and their probabilities
+                    top_probs, top_idxs = torch.topk(probs, num_beam, dim=-1)
+                    
+                    # Create new candidate sequences for each beam
+                    for i in range(num_beam):
+                        idx_next = top_idxs[:, i].unsqueeze(1)  # Get the next token
+                        new_seq = torch.cat((seq, idx_next), dim=1)  # Append the token
+                        new_score = score + torch.log(top_probs[:, i])  # Accumulate log probabilities
+                        all_candidates.append((new_seq, new_score))
+                
+                # Sort all candidates by score and select the top num_beam
+                all_candidates = sorted(all_candidates, key=lambda x: x[1], reverse=True)
+                beams = all_candidates[:num_beam]  # Keep top beams
+            
+            # Return the best sequence (highest scoring)
+            idx = beams[0][0]  # Choose the sequence with the highest score
+
 
         return idx
