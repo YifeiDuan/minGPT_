@@ -20,14 +20,14 @@ from mingpt.model import VectraGPT
 
 
 
-def generate(model, prompt, external_rep=None, num_samples=10, steps=20, do_sample=True):
+def generate(model, prompt, external_rep=None, num_samples=10, steps=20, do_sample=True, beam_search=1):
         
     # tokenize the input prompt into integer input sequence
     tokenizer = BPETokenizer()
     x = tokenizer(prompt).to(model.device)
     
     # forward the model `steps` times to get samples, in a batch
-    y = model.generate(x, external_rep=external_rep, max_new_tokens=steps, do_sample=do_sample, top_k=40)
+    y = model.generate(x, external_rep=external_rep, max_new_tokens=steps, do_sample=do_sample, top_k=40, beam_search=beam_search, device=device)
     
     for i in range(y.shape[0]):
         out = tokenizer.decode(y[i].cpu().squeeze())
@@ -36,7 +36,7 @@ def generate(model, prompt, external_rep=None, num_samples=10, steps=20, do_samp
 
 
 
-def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu', external_rep_mode=1):
+def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu', external_rep_mode=1, beam_search=1):
     """
     If use_mingpt == False, then model_type must not be None (we need to load a specified pretrained tokenizer)
 
@@ -52,9 +52,9 @@ def batched_generate(model, data_loader, steps=20, do_sample=True, device='cpu',
         # forward the model `steps` times to get samples, in a batch
         if external_rep_mode != 0:
             # model.external_rep_mode has been specified when loading saved model with saved model_config
-            y = model.generate(x, external_rep=(zeo_rep, syn_rep), max_new_tokens=steps, do_sample=do_sample, top_k=40)
+            y = model.generate(x, external_rep=(zeo_rep, syn_rep), max_new_tokens=steps, do_sample=do_sample, top_k=40, beam_search=beam_search, device=device)
         elif external_rep_mode == 0:
-            y = model.generate(x, external_rep=None, max_new_tokens=steps, do_sample=do_sample, top_k=40)
+            y = model.generate(x, external_rep=None, max_new_tokens=steps, do_sample=do_sample, top_k=40, beam_search=beam_search, device=device)
         
         for i in range(x.shape[0]):
             vocabID_seq = y[i].cpu().squeeze().numpy()
@@ -88,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('--ckpt_end', type=int, default=100) 
     parser.add_argument('--ckpt_step', type=int, default=10) 
     parser.add_argument('--external_rep_mode',type=int, default=1)
+    parser.add_argument('--beam_search',type=int, default=1)
 
     args = parser.parse_args()
     model_type = args.model_type
@@ -96,6 +97,7 @@ if __name__ == "__main__":
     ckpt_end = args.ckpt_end
     ckpt_step = args.ckpt_step
     external_rep_mode = args.external_rep_mode
+    beam_search = False if args.beam_search==0 else True
 
     if device == 'auto':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -143,7 +145,7 @@ if __name__ == "__main__":
 
         model_config = trained_stuff["model_config"]
         model_config.model_type = None
-        if not model_config.get("max_text_len"):
+        if not model_config.to_dict().get("max_text_len"):
             model_config.max_text_len = model_config.block_size
         model = VectraGPT(model_config)
         model.load_state_dict(trained_stuff["model_state_dict"])
@@ -156,20 +158,20 @@ if __name__ == "__main__":
         if not os.path.exists(gen_dir):
             os.makedirs(gen_dir)
 
-        train_gen_records = batched_generate(model, train_loader, steps=info["max_total_length"], do_sample=True, device=device, external_rep_mode=external_rep_mode)
+        train_gen_records = batched_generate(model, train_loader, steps=info["max_total_length"], do_sample=False, device=device, external_rep_mode=external_rep_mode, beam_search=beam_search)
         with open(gen_dir + "train_set_records.pkl", 'wb') as file:
             pickle.dump(train_gen_records, file)
         df = pd.DataFrame.from_records(train_gen_records)
         df.to_csv(gen_dir + "train_df.csv", index=False)
         
-        val_gen_records = batched_generate(model, val_loader, steps=info["max_total_length"], do_sample=True, device=device, external_rep_mode=external_rep_mode)
+        val_gen_records = batched_generate(model, val_loader, steps=info["max_total_length"], do_sample=False, device=device, external_rep_mode=external_rep_mode, beam_search=beam_search)
         with open(gen_dir + "val_set_records.pkl", 'wb') as file:
             pickle.dump(val_gen_records, file)
         df = pd.DataFrame.from_records(val_gen_records)
         df.to_csv(gen_dir + "val_df.csv", index=False)
 
         
-        test_gen_records = batched_generate(model, test_loader, steps=info["max_total_length"], do_sample=True, device=device, external_rep_mode=external_rep_mode)
+        test_gen_records = batched_generate(model, test_loader, steps=info["max_total_length"], do_sample=False, device=device, external_rep_mode=external_rep_mode, beam_search=beam_search)
         with open(gen_dir + "test_set_records.pkl", 'wb') as file:
             pickle.dump(test_gen_records, file)
         df = pd.DataFrame.from_records(test_gen_records)

@@ -20,6 +20,8 @@ sys.path.append("/home/jupyter/YD/ZeoPrecLLM/ZeoPrec/minGPT")
 
 from mingpt.utils import CfgNode as CN
 
+from IPython import embed
+
 # -----------------------------------------------------------------------------
 
 class NewGELU(nn.Module):
@@ -572,7 +574,7 @@ class VectraGPT(nn.Module):
 
 
     @torch.no_grad()
-    def generate(self, idx, external_rep=None, max_new_tokens=40, temperature=1.0, do_sample=False, top_k=None, beam_search=True, num_beam=None):
+    def generate(self, idx, external_rep=None, max_new_tokens=40, temperature=1.0, do_sample=False, top_k=None, beam_search=True, num_beam=None, device="cpu"):
         """
         Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
@@ -618,7 +620,7 @@ class VectraGPT(nn.Module):
                 num_beam = 5
 
             # Initialize the beams: list of tuples (sequence, score)
-            beams = [(idx, 0.0)]  # sequence and log probability score
+            beams = [(idx, torch.tensor([0.0]).expand(idx.shape[0]).to(device))]  # sequence and log probability score
             
             for _ in range(max_new_tokens):
                 all_candidates = []
@@ -640,21 +642,37 @@ class VectraGPT(nn.Module):
                         logits[logits < v[:, [-1]]] = -float('Inf')
                     
                     # Convert logits to probabilities
-                    probs = F.softmax(logits, dim=-1)
+                    probs = F.softmax(logits, dim=-1)   # probs shape = (b, vocab_size)
                     
                     # Get top num_beam tokens and their probabilities
-                    top_probs, top_idxs = torch.topk(probs, num_beam, dim=-1)
+                    top_probs, top_idxs = torch.topk(probs, num_beam, dim=-1)   # top_probs, top_idxs shape = (b, num_beam)
                     
                     # Create new candidate sequences for each beam
                     for i in range(num_beam):
                         idx_next = top_idxs[:, i].unsqueeze(1)  # Get the next token
                         new_seq = torch.cat((seq, idx_next), dim=1)  # Append the token
                         new_score = score + torch.log(top_probs[:, i])  # Accumulate log probabilities
+                        # new_score shape = (b,)
                         all_candidates.append((new_seq, new_score))
                 
                 # Sort all candidates by score and select the top num_beam
-                all_candidates = sorted(all_candidates, key=lambda x: x[1], reverse=True)
-                beams = all_candidates[:num_beam]  # Keep top beams
+                ### all_candidates: a list of tuple (batched_seqs, batched_scores)
+                ##### batched_seqs shape = (b, seq_len), batched_scores shape = (b, )
+                b_seqs = torch.cat([b_cand[0].unsqueeze(0) for b_cand in all_candidates], dim=0)
+                # b_seqs shape (num_beam*num_beam, b, seq_len) or (only 1st iteration) (num_beam, b, seq_len)
+                b_scores = torch.cat([b_cand[1].unsqueeze(0) for b_cand in all_candidates], dim=0)
+                # b_scores shape (num_beam*num_beam, b) or (only 1st iteration) (num_beam, b)
+                top_scores, top_cand_ids = torch.topk(b_scores, k=num_beam, dim=0)   # top num_beam scores and idx of each example in the batch
+                # top_scores, top_cand_ids both of shape (num_beam, b)
+                top_cand_ids_expand = top_cand_ids.unsqueeze(-1).expand(-1, -1, b_seqs.size(-1))
+                # top_cand_ids_expand has shape (num_beam, b, seq_len)
+                top_seqs = torch.gather(b_seqs, dim=0, index=top_cand_ids_expand)
+                # top_seqs has shape (num_beam, b, seq_len)
+                beams = list(zip(top_seqs, top_scores))
+
+
+                # all_candidates = sorted(all_candidates, key=lambda x: x[1], reverse=True)
+                # beams = all_candidates[:num_beam]  # Keep top beams
             
             # Return the best sequence (highest scoring)
             idx = beams[0][0]  # Choose the sequence with the highest score
