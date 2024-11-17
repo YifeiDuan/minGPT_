@@ -319,7 +319,6 @@ class GPT(nn.Module):
 
 
 
-class VectraGPT(nn.Module):
     @staticmethod
     def get_default_config():
         C = CN()

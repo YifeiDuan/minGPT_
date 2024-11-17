@@ -16,7 +16,6 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_start', type=int, default=10)  
     parser.add_argument('--ckpt_end', type=int, default=100) 
     parser.add_argument('--ckpt_step', type=int, default=10) 
-    parser.add_argument('--external_rep_mode',type=int, default=1)
 
     args = parser.parse_args()
     model_type = args.model_type
@@ -29,7 +28,7 @@ if __name__ == '__main__':
     ########## 1. Load the data ##########
     for epoch in range(ckpt_start, ckpt_end+ckpt_step, ckpt_step):
         print(f"Evaluating checkpoint at epoch {epoch}")
-        gen_dir = f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/epoch_{epoch}/"
+        gen_dir = f"{model_type}/epoch_{epoch}/"
 
         for split in ["train", "val", "test"]:
             df = pd.read_csv(gen_dir + f"{split}_df.csv")
@@ -78,7 +77,7 @@ if __name__ == '__main__':
             metrics_records.append(record)
 
     df_metrics = pd.DataFrame.from_records(metrics_records)
-    df_metrics.to_csv(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/eval_metrics_summary.csv", index=False)
+    df_metrics.to_csv(f"eval_metrics_summary.csv", index=False)
 
     ########## 4. Plots: Each split ##########
     for split in ["train", "val", "test"]:
@@ -88,7 +87,7 @@ if __name__ == '__main__':
         plt.plot(df["epoch"], df["recall"], label="recall")
         plt.plot(df["epoch"], df["F1"], label="F1")
         plt.legend()
-        plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/eval_metrics_accuracy_{split}.jpg")
+        plt.savefig(f"eval_metrics_accuracy_{split}.jpg")
         plt.show()
 
         plt.figure()
@@ -97,5 +96,5 @@ if __name__ == '__main__':
         plt.plot(df["epoch"], df["rougeL"], label="rougeL")
         plt.plot(df["epoch"], df["rougeLsum"], label="rougeLsum")
         plt.legend()
-        plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/eval_metrics_rouge_{split}.jpg")
+        plt.savefig(f"eval_metrics_rouge_{split}.jpg")
         plt.show()

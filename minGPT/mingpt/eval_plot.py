@@ -12,7 +12,6 @@ if __name__ == '__main__':
     ########## 0. Configurate the session ##########
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type', default="gpt-mini") 
-    parser.add_argument('--external_rep_modes',type=int, nargs='+', help='List of modes')
 
     args = parser.parse_args()
     model_type = args.model_type
@@ -21,7 +20,7 @@ if __name__ == '__main__':
     ########## 1. Load eval metrics ##########
     dfs = {}
     for external_rep_mode in list(external_rep_modes):
-        df = pd.read_csv(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/eval_metrics_summary.csv")
+        df = pd.read_csv(f"eval_metrics_summary.csv")
         dfs[external_rep_mode] = df
 
 
@@ -37,12 +36,12 @@ if __name__ == '__main__':
             plt.plot(df_test["epoch"], df_test[metric], label="test")
             plt.legend()
             plt.title(f"{model_type}_mode{external_rep_mode}_{metric}")
-            plt.savefig(f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_mode{external_rep_mode}/eval_metrics_{metric}.jpg")
+            plt.savefig(f"eval_metrics_{metric}.jpg")
             plt.show()
     
 
     ########## 3. Plots: Compare modes ##########
-    save_path = f"/home/jupyter/YD/ZeoPrecLLM/generation_analysis/{model_type}_comparison/"
+    save_path = f"{model_type}_comparison/"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
